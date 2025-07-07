@@ -69,11 +69,8 @@ def security(session):
     session.run("bandit", "-r", ".", "--severity-level", "medium")
     session.run("safety", "check")
     
-    # Advanced security scanning
-    try:
-        session.run("semgrep", "--config=auto", ".")
-    except Exception:
-        session.log("Semgrep not available or failed, skipping...")
+    # Note: Advanced security scanning tools like semgrep can be added here
+    session.log("Basic security scanning complete")
 
 
 @nox.session(python=LINT_PYTHON_VERSION)

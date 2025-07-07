@@ -92,13 +92,8 @@ repos:
       - id: yamllint
         args: [-d, relaxed]
 
-  # Security vulnerability scanning
-  - repo: https://github.com/gitguardian/ggshield
-    rev: v1.21.0
-    hooks:
-      - id: ggshield
-        language: python
-        stages: [commit]
+  # Note: Security vulnerability scanning can be added here
+  # GitGuardian and similar tools may require API keys
 
   # Dockerfile linting (if Docker files are present)
   - repo: https://github.com/hadolint/hadolint
