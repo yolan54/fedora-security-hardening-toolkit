@@ -1,0 +1,18 @@
+# Production dependencies for Fedora Security Hardening Toolkit
+# This file contains the minimal runtime dependencies
+
+# Core Python standard library is sufficient for production use
+# No external dependencies required for core functionality
+# This ensures the toolkit works in minimal/air-gapped environments
+
+# Optional: Enhanced JSON handling (if needed)
+# orjson>=3.8.0
+
+# Optional: Enhanced terminal output (if needed)
+# rich>=13.0.0
+
+# Optional: Configuration file parsing (if needed)
+# pyyaml>=6.0
+
+# Note: The toolkit is designed to work with Python standard library only
+# to ensure maximum compatibility and minimal attack surface

@@ -20,13 +20,20 @@ help: ## Show this help message
 # Installation targets
 install: ## Install production dependencies
 	@echo "Installing production dependencies..."
+	pip install -r requirements.txt
 	pip install -e .
 
 install-dev: ## Install development dependencies
 	@echo "Installing development dependencies..."
-	pip install -e ".[dev]"
+	pip install -r requirements-dev.txt
+	pip install -e .
 	pre-commit install
 	@echo "Development environment ready!"
+
+install-test: ## Install testing dependencies
+	@echo "Installing testing dependencies..."
+	pip install -r requirements-test.txt
+	pip install -e .
 
 # Code quality targets
 lint: ## Run all linting tools
@@ -57,8 +64,32 @@ test: ## Run test suite
 
 test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
-	python -m pytest tests/ --cov=. --cov-report=html --cov-report=term
+	python -m pytest tests/ --cov=. --cov-report=html --cov-report=term --cov-report=xml
 	@echo "Coverage report generated in htmlcov/"
+
+test-unit: ## Run unit tests only
+	@echo "Running unit tests..."
+	python -m pytest tests/ -m "unit" -v
+
+test-integration: ## Run integration tests only
+	@echo "Running integration tests..."
+	python -m pytest tests/ -m "integration" -v
+
+test-security: ## Run security tests only
+	@echo "Running security tests..."
+	python -m pytest tests/ -m "security" -v
+
+test-performance: ## Run performance benchmarks
+	@echo "Running performance tests..."
+	python -m pytest tests/ -m "performance" --benchmark-only
+
+test-parallel: ## Run tests in parallel
+	@echo "Running tests in parallel..."
+	python -m pytest tests/ -n auto -v
+
+test-watch: ## Run tests in watch mode
+	@echo "Running tests in watch mode..."
+	python -m pytest tests/ -f
 
 # Security scanning targets
 security-scan: ## Run comprehensive security analysis

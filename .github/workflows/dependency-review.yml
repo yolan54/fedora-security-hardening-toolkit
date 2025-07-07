@@ -1,0 +1,90 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'setup.py'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v3
+      with:
+        fail-on-severity: moderate
+        allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
+        deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0
+        
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install pip-audit
+      run: pip install pip-audit
+      
+    - name: Audit production dependencies
+      run: |
+        pip-audit --requirement requirements.txt --format=json --output=audit-prod.json
+        pip-audit --requirement requirements.txt
+        
+    - name: Audit development dependencies
+      run: |
+        pip-audit --requirement requirements-dev.txt --format=json --output=audit-dev.json
+        pip-audit --requirement requirements-dev.txt
+        
+    - name: Upload audit results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-audit-results
+        path: audit-*.json
+        
+  license-check:
+    name: License Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install license checker
+      run: pip install pip-licenses
+      
+    - name: Check production licenses
+      run: |
+        pip install -r requirements.txt
+        pip-licenses --format=json --output-file=licenses-prod.json
+        pip-licenses --allow-only="MIT;Apache Software License;BSD License;ISC License (ISCL);Python Software Foundation License"
+        
+    - name: Upload license results
+      uses: actions/upload-artifact@v3
+      with:
+        name: license-check-results
+        path: licenses-*.json
