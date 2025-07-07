@@ -1,9 +1,18 @@
 #!/bin/bash
-# Security Validation Testing Script for Apple A1286
+# Fedora Security Hardening Toolkit - Security Validation Module
+# Cross-platform security validation with transparency and user empowerment
 # Based on CIS Benchmarks, NIST Framework, and official security documentation
+#
+# Features:
+# - Hardware-agnostic design for any architecture
+# - Transparent security assessment with detailed explanations
+# - Risk-based communication with color-coded priorities
+# - Educational guidance for ongoing security management
+# - Cross-platform compatibility (Fedora, RHEL, CentOS, Rocky, Debian, Ubuntu)
+#
 # References:
-# - CIS Controls v8
-# - NIST Cybersecurity Framework
+# - CIS Controls v8: https://www.cisecurity.org/controls/
+# - NIST Cybersecurity Framework: https://www.nist.gov/cyberframework
 # - https://github.com/imthenachoman/How-To-Secure-A-Linux-Server
 # - Official distribution security guides
 
@@ -11,6 +20,7 @@ set -euo pipefail
 
 # Script metadata
 readonly SCRIPT_VERSION="2.0.0"
+readonly SCRIPT_NAME="Fedora Security Hardening Toolkit - Validation Module"
 readonly COMPLIANCE_FRAMEWORKS="CIS Controls v8, NIST CSF"
 
 # Colors
@@ -53,14 +63,27 @@ log_test() {
 print_header() {
     echo -e "${BOLD}${CYAN}"
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║           SECURITY VALIDATION TESTING v${SCRIPT_VERSION}              ║"
-    echo "║              Apple A1286 Security Assessment                ║"
-    echo "║        Based on Official Documentation & Standards          ║"
+    echo "║           FEDORA SECURITY HARDENING TOOLKIT                 ║"
+    echo "║              Security Validation & Assessment               ║"
+    echo "║          Cross-Platform • Transparent • Educational         ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
-    echo -e "${BLUE}Distribution: ${DISTRO}${NC}"
-    echo -e "${BLUE}Test log: ${LOG_FILE}${NC}"
-    echo -e "${BLUE}Compliance frameworks: ${COMPLIANCE_FRAMEWORKS}${NC}"
+
+    # System information with transparency
+    echo -e "${BOLD}${BLUE}🖥️  SYSTEM INFORMATION${NC}"
+    echo -e "  Distribution: ${CYAN}${DISTRO}${NC}"
+    echo -e "  Architecture: ${CYAN}$(uname -m)${NC}"
+    echo -e "  Kernel: ${CYAN}$(uname -r)${NC}"
+    echo -e "  Validation Log: ${CYAN}${LOG_FILE}${NC}"
+    echo -e "  Compliance: ${CYAN}${COMPLIANCE_FRAMEWORKS}${NC}"
+
+    # Transparency notice
+    echo -e "\n${BOLD}${YELLOW}🔍 TRANSPARENCY NOTICE${NC}"
+    echo -e "  This validation provides ${BOLD}transparent security assessment${NC}"
+    echo -e "  • ${GREEN}Current security posture analysis${NC}"
+    echo -e "  • ${GREEN}Risk-based priority recommendations${NC}"
+    echo -e "  • ${GREEN}Educational guidance for improvements${NC}"
+    echo -e "  • ${GREEN}No system changes made during validation${NC}"
 }
 
 print_section() {
@@ -94,6 +117,31 @@ print_info() {
     log_test "INFO: $1"
 }
 
+print_recommendation() {
+    echo -e "${CYAN}💡 RECOMMENDATION: $1${NC}"
+    log_test "RECOMMENDATION: $1"
+}
+
+print_risk_high() {
+    echo -e "${RED}🔴 HIGH RISK: $1${NC}"
+    log_test "HIGH RISK: $1"
+}
+
+print_risk_medium() {
+    echo -e "${YELLOW}🟡 MEDIUM RISK: $1${NC}"
+    log_test "MEDIUM RISK: $1"
+}
+
+print_risk_low() {
+    echo -e "${GREEN}🟢 LOW RISK: $1${NC}"
+    log_test "LOW RISK: $1"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ️  INFO: $1${NC}"
+    log_test "INFO: $1"
+}
+
 run_test() {
     local command="$1"
     local description="$2"
@@ -108,27 +156,48 @@ run_test() {
 
 test_fail2ban_protection() {
     print_section "FAIL2BAN INTRUSION PREVENTION VALIDATION (CIS 6.2)"
-    
+
+    echo -e "${BOLD}${BLUE}🛡️  INTRUSION PREVENTION ANALYSIS${NC}"
+    echo -e "  Validating fail2ban configuration and effectiveness..."
+    echo ""
+
     # Test 1: Check if fail2ban service is active
     if systemctl is-active --quiet fail2ban; then
-        print_pass "Fail2ban service is active"
-        
+        print_pass "Fail2ban service is active and running"
+
+        # Get version information for transparency
+        local version=$(fail2ban-client version 2>/dev/null | head -n1 || echo "Unknown")
+        print_info "Fail2ban version: $version"
+
         # Test 2: Check if SSH jail is configured
         if fail2ban-client status sshd &>/dev/null; then
             print_pass "SSH jail is configured and active"
-            
-            # Test 3: Check jail configuration
+
+            # Show current SSH jail status with transparency
             local jail_info=$(fail2ban-client status sshd 2>/dev/null)
-            if echo "$jail_info" | grep -q "Currently failed:"; then
-                print_pass "SSH jail is monitoring failed attempts"
-            else
-                print_warn "SSH jail status unclear"
+            local currently_failed=$(echo "$jail_info" | grep "Currently failed:" | awk '{print $3}' || echo "0")
+            local currently_banned=$(echo "$jail_info" | grep "Currently banned:" | awk '{print $3}' || echo "0")
+
+            print_info "Current SSH protection status:"
+            echo -e "    ${CYAN}• Failed attempts being monitored: ${currently_failed}${NC}"
+            echo -e "    ${CYAN}• Currently banned IPs: ${currently_banned}${NC}"
+
+            if [[ "$currently_failed" -gt 0 ]]; then
+                print_risk_medium "Active failed SSH attempts detected ($currently_failed)"
+                print_recommendation "Monitor SSH logs: sudo journalctl -u sshd -f"
             fi
-            
-            # Test 4: Check ban time configuration
+
+            if [[ "$currently_banned" -gt 0 ]]; then
+                print_risk_high "IPs currently banned for SSH attacks ($currently_banned)"
+                print_recommendation "Review banned IPs: sudo fail2ban-client status sshd"
+            fi
+
+            # Test 3: Check ban time configuration with transparency
             local jail_config=$(fail2ban-client get sshd bantime 2>/dev/null || echo "0")
+            local ban_hours=$((jail_config / 3600))
+
             if [[ "$jail_config" -ge 3600 ]]; then
-                print_pass "SSH jail ban time is appropriately configured (≥1 hour)"
+                print_pass "SSH jail ban time is appropriately configured ($ban_hours hours)"
             else
                 print_warn "SSH jail ban time may be too short: ${jail_config}s"
             fi

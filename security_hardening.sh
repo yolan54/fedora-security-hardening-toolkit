@@ -1,16 +1,29 @@
 #!/bin/bash
-# Advanced Network Hardening Script for Apple A1286
+# Fedora Security Hardening Toolkit - Interactive Hardening Module
+# Cross-platform security hardening with transparency and user empowerment
 # Based on CIS Benchmarks, NIST Framework, and official documentation
+#
+# Features:
+# - Hardware-agnostic design for any architecture
+# - Transparent security implementation with before/after analysis
+# - Interactive user confirmation with preview options
+# - Comprehensive backup system with auto-generated rollback scripts
+# - Risk-based communication with color-coded priorities
+# - Educational guidance for ongoing security management
+# - Cross-platform compatibility (Fedora, RHEL, CentOS, Rocky, Debian, Ubuntu)
+#
 # References:
 # - https://github.com/imthenachoman/How-To-Secure-A-Linux-Server
 # - https://docs.fedoraproject.org/en-US/quick-docs/firewalld/
 # - https://github.com/fail2ban/fail2ban (official repo)
-# - CIS Controls v8 and NIST Cybersecurity Framework
+# - CIS Controls v8: https://www.cisecurity.org/controls/
+# - NIST Cybersecurity Framework: https://www.nist.gov/cyberframework
 
 set -euo pipefail
 
 # Script metadata
 SCRIPT_VERSION="2.0.0"
+SCRIPT_NAME="Fedora Security Hardening Toolkit - Interactive Hardening Module"
 COMPLIANCE_FRAMEWORKS="CIS Controls v8, NIST CSF"
 
 # Colors for output
@@ -48,14 +61,35 @@ log_action() {
 print_header() {
     echo -e "${BOLD}${CYAN}"
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║        ADVANCED NETWORK HARDENING - APPLE A1286 v${SCRIPT_VERSION}        ║"
-    echo "║     Based on Official Documentation & Best Practices        ║"
-    echo "║              ${COMPLIANCE_FRAMEWORKS}              ║"
+    echo "║           FEDORA SECURITY HARDENING TOOLKIT                 ║"
+    echo "║              Interactive Security Implementation             ║"
+    echo "║          Transparent • User-Controlled • Reversible         ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
-    echo -e "${BLUE}Distribution detected: ${DISTRO}${NC}"
-    echo -e "${BLUE}Log file: ${LOG_FILE}${NC}"
-    echo -e "${BLUE}Backup directory: ${BACKUP_DIR}${NC}"
+
+    # System information with transparency
+    echo -e "${BOLD}${BLUE}🖥️  SYSTEM INFORMATION${NC}"
+    echo -e "  Distribution: ${CYAN}${DISTRO}${NC}"
+    echo -e "  Architecture: ${CYAN}$(uname -m)${NC}"
+    echo -e "  Kernel: ${CYAN}$(uname -r)${NC}"
+    echo -e "  Log file: ${CYAN}${LOG_FILE}${NC}"
+    echo -e "  Backup directory: ${CYAN}${BACKUP_DIR}${NC}"
+    echo -e "  Compliance: ${CYAN}${COMPLIANCE_FRAMEWORKS}${NC}"
+
+    # Transparency and user empowerment notice
+    echo -e "\n${BOLD}${YELLOW}🔍 TRANSPARENCY & USER CONTROL${NC}"
+    echo -e "  This hardening script provides ${BOLD}complete transparency${NC}:"
+    echo -e "  • ${GREEN}Shows current security state before any changes${NC}"
+    echo -e "  • ${GREEN}Previews all proposed modifications${NC}"
+    echo -e "  • ${GREEN}Asks for your confirmation before applying changes${NC}"
+    echo -e "  • ${GREEN}Creates comprehensive backups with rollback scripts${NC}"
+    echo -e "  • ${GREEN}Provides educational guidance for ongoing management${NC}"
+
+    echo -e "\n${BOLD}${CYAN}🛡️  SECURITY IMPLEMENTATION APPROACH${NC}"
+    echo -e "  • ${BLUE}Progressive analysis${NC} - Understand current state first"
+    echo -e "  • ${BLUE}Risk-based priorities${NC} - Address highest risks first"
+    echo -e "  • ${BLUE}User choice${NC} - You control what changes are made"
+    echo -e "  • ${BLUE}Rollback safety${NC} - Easy to undo any changes"
 }
 
 print_section() {
@@ -81,6 +115,66 @@ print_error() {
 print_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
     log_action "INFO: $1"
+}
+
+print_current_state() {
+    echo -e "${BOLD}${CYAN}📊 CURRENT STATE: $1${NC}"
+    log_action "CURRENT STATE: $1"
+}
+
+print_proposed_change() {
+    echo -e "${BOLD}${YELLOW}🔧 PROPOSED CHANGE: $1${NC}"
+    log_action "PROPOSED CHANGE: $1"
+}
+
+print_security_impact() {
+    echo -e "${BOLD}${GREEN}🛡️  SECURITY IMPACT: $1${NC}"
+    log_action "SECURITY IMPACT: $1"
+}
+
+print_risk_reduction() {
+    echo -e "${BOLD}${GREEN}📉 RISK REDUCTION: $1${NC}"
+    log_action "RISK REDUCTION: $1"
+}
+
+print_rollback_info() {
+    echo -e "${BOLD}${BLUE}🔄 ROLLBACK: $1${NC}"
+    log_action "ROLLBACK: $1"
+}
+
+ask_user_confirmation() {
+    local prompt="$1"
+    local default="${2:-n}"
+
+    echo -e "\n${BOLD}${YELLOW}❓ USER CONFIRMATION REQUIRED${NC}"
+    echo -e "${prompt}"
+    echo -e "\nOptions:"
+    echo -e "  ${GREEN}y${NC} - Yes, apply this change"
+    echo -e "  ${RED}n${NC} - No, skip this change"
+    echo -e "  ${BLUE}p${NC} - Preview the change details"
+    echo -e "  ${CYAN}q${NC} - Quit the hardening process"
+
+    while true; do
+        read -p "Your choice [y/n/p/q]: " -r response
+        case "$response" in
+            [Yy]|[Yy][Ee][Ss])
+                return 0
+                ;;
+            [Nn]|[Nn][Oo])
+                return 1
+                ;;
+            [Pp]|[Pp][Rr][Ee][Vv][Ii][Ee][Ww])
+                return 2
+                ;;
+            [Qq]|[Qq][Uu][Ii][Tt])
+                echo -e "${YELLOW}Hardening process cancelled by user${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Invalid option. Please choose y, n, p, or q${NC}"
+                ;;
+        esac
+    done
 }
 
 check_root() {
