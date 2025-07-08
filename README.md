@@ -47,6 +47,16 @@ This toolkit provides **three complementary tools** that work together to secure
 - **NIST Cybersecurity Framework**: Identify, Protect, Detect, Respond, Recover
 - **Industry Standards**: Based on official documentation and best practices
 
+## Usage
+
+This toolkit provides three main scripts for comprehensive security management:
+
+1. **Security Audit**: `sudo python3 security_audit.py` - Assess current security posture
+2. **Security Hardening**: `sudo ./security_hardening.sh` - Apply security controls
+3. **Security Validation**: `sudo ./security_validation.sh` - Verify implementation
+
+See the Quick Start Guide below for detailed instructions.
+
 ## 🚀 **Quick Start Guide**
 
 ### **Prerequisites**
