@@ -6,8 +6,9 @@ This setup script provides a production-grade installation and configuration
 system for the security hardening toolkit.
 """
 
-from setuptools import setup, find_packages
 import sys
+
+from setuptools import find_packages, setup
 
 # Ensure Python 3.8+
 if sys.version_info < (3, 8):

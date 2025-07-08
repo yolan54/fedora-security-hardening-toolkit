@@ -144,8 +144,8 @@ def deps_check(session):
 @nox.session(python=LINT_PYTHON_VERSION)
 def clean(session):
     """Clean up build artifacts and cache files."""
-    import shutil
     import os
+    import shutil
 
     dirs_to_clean = [
         "build",
