@@ -1453,10 +1453,10 @@ class SecurityAuditor:
                         rerun = input(f"\n{Colors.CYAN}Run security audit again now? (y/N): {Colors.END}").strip().lower()
                         if rerun in ['y', 'yes']:
                             print(f"\n{Colors.BLUE}🔄 Restarting security audit...{Colors.END}")
-                            # Note: In a real implementation, you might want to restart the audit
-                            print(f"{Colors.YELLOW}Please run 'python3 security_audit.py' again to see improvements{Colors.END}")
+                            self._restart_audit_after_fixes()
                         else:
                             print(f"{Colors.BLUE}✅ Fixes applied. Run audit manually when ready.{Colors.END}")
+                            self._continue_after_script_generation(script_filename)
                     else:
                         print(f"{Colors.RED}❌ Script execution failed: {result['stderr']}{Colors.END}")
                         self._continue_after_script_generation(script_filename)
@@ -1498,6 +1498,147 @@ class SecurityAuditor:
 
         # Offer interactive remediation
         self._offer_interactive_remediation()
+
+    def _restart_audit_after_fixes(self) -> None:
+        """Restart the security audit after applying fixes."""
+        print(f"\n{Colors.BOLD}{Colors.GREEN}🔄 RESTARTING SECURITY AUDIT{Colors.END}")
+        print("=" * 60)
+        print(f"{Colors.BLUE}Clearing previous results and running fresh audit...{Colors.END}")
+
+        # Clear previous results
+        self.findings = {}
+        self.recommendations = []
+        self.compliance_status = {'cis_controls': [], 'nist_csf': []}
+
+        # Re-initialize system info
+        self.system_info = self._get_system_info()
+
+        print(f"\n{Colors.CYAN}System re-scan in progress...{Colors.END}")
+
+        # Run all audit modules again
+        try:
+            self.audit_fail2ban()
+            self.audit_firewall()
+            self.audit_ssh_security()
+            self.audit_system_hardening()
+            self.audit_user_accounts()
+
+            # Generate new report
+            report_file = self.generate_report()
+
+            print(f"\n{Colors.BOLD}{Colors.GREEN}🎉 POST-FIX AUDIT COMPLETE{Colors.END}")
+            print(f"{Colors.BLUE}📊 Updated report saved: {report_file}{Colors.END}")
+
+            # Show improvement summary
+            self._show_improvement_summary()
+
+            # Offer to continue with any remaining issues
+            if self.recommendations:
+                print(f"\n{Colors.YELLOW}📋 Additional issues found. Continue with remediation?{Colors.END}")
+                self._offer_interactive_remediation()
+            else:
+                print(f"\n{Colors.GREEN}🎉 Congratulations! All security issues have been resolved!{Colors.END}")
+                print(f"{Colors.BLUE}💡 Your system security score should now be significantly improved.{Colors.END}")
+                self._offer_final_options()
+
+        except Exception as e:
+            print(f"{Colors.RED}❌ Error during audit restart: {e}{Colors.END}")
+            print(f"{Colors.YELLOW}Please run the audit manually: python3 security_audit.py{Colors.END}")
+
+    def _show_improvement_summary(self) -> None:
+        """Show a summary of security improvements after fixes."""
+        print(f"\n{Colors.BOLD}{Colors.CYAN}📈 SECURITY IMPROVEMENT SUMMARY{Colors.END}")
+        print("-" * 50)
+
+        # Calculate current metrics
+        current_metrics = self._calculate_security_metrics()
+        current_score = current_metrics['overall_score']
+        current_risk = current_metrics['risk_level']
+
+        # Show current status
+        if current_score >= 90:
+            score_color = Colors.GREEN
+            score_icon = "🟢"
+        elif current_score >= 75:
+            score_color = Colors.YELLOW
+            score_icon = "🟡"
+        elif current_score >= 50:
+            score_color = Colors.RED
+            score_icon = "🟠"
+        else:
+            score_color = Colors.RED
+            score_icon = "🔴"
+
+        print(f"📊 Updated Security Score: {score_color}{current_score}/100 {score_icon} ({current_risk} RISK){Colors.END}")
+
+        # Show remaining issues
+        if current_metrics['critical_issues'] > 0:
+            print(f"🔴 Critical issues remaining: {current_metrics['critical_issues']}")
+        if current_metrics['high_issues'] > 0:
+            print(f"🟠 High priority remaining: {current_metrics['high_issues']}")
+        if current_metrics['medium_issues'] > 0:
+            print(f"🟡 Medium priority remaining: {current_metrics['medium_issues']}")
+
+        if current_metrics['critical_issues'] == 0 and current_metrics['high_issues'] == 0:
+            print(f"{Colors.GREEN}✅ No critical or high priority issues remaining!{Colors.END}")
+
+        print(f"✅ Passed security checks: {current_metrics['passed_checks']}")
+
+    def _offer_final_options(self) -> None:
+        """Offer final options when all issues are resolved."""
+        print(f"\n{Colors.BOLD}{Colors.GREEN}🎯 ALL SECURITY ISSUES RESOLVED{Colors.END}")
+        print("Your system is now properly secured. What would you like to do?")
+        print(f"  {Colors.GREEN}1{Colors.END} - 📊 View detailed security report")
+        print(f"  {Colors.GREEN}2{Colors.END} - 🔄 Run audit again to double-check")
+        print(f"  {Colors.GREEN}3{Colors.END} - 📚 Learn about ongoing security maintenance")
+        print(f"  {Colors.GREEN}4{Colors.END} - ✅ Exit - security hardening complete")
+
+        try:
+            choice = input(f"\n{Colors.CYAN}Enter your choice (1-4): {Colors.END}").strip()
+
+            if choice == '1':
+                print(f"\n{Colors.BLUE}📊 Detailed security report available in the JSON file{Colors.END}")
+                print(f"{Colors.CYAN}View with: cat security_audit_report_*.json | jq{Colors.END}")
+                self._offer_final_options()
+            elif choice == '2':
+                self._restart_audit_after_fixes()
+            elif choice == '3':
+                self._show_maintenance_guidance()
+            elif choice == '4':
+                print(f"\n{Colors.GREEN}🎉 Security hardening complete! Your system is now properly secured.{Colors.END}")
+                print(f"{Colors.BLUE}💡 Remember to run regular security audits to maintain security posture.{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}Invalid choice. Exiting.{Colors.END}")
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Exiting security audit.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Exiting.{Colors.END}")
+
+    def _show_maintenance_guidance(self) -> None:
+        """Show ongoing security maintenance guidance."""
+        print(f"\n{Colors.BOLD}{Colors.BLUE}🔧 ONGOING SECURITY MAINTENANCE{Colors.END}")
+        print("=" * 50)
+        print(f"{Colors.GREEN}Regular Security Tasks:{Colors.END}")
+        print("  • Run security audit monthly: python3 security_audit.py")
+        print("  • Update system packages weekly: sudo dnf update")
+        print("  • Review firewall logs: sudo journalctl -u firewalld")
+        print("  • Check fail2ban status: sudo fail2ban-client status")
+        print("  • Monitor system logs: sudo journalctl --since yesterday")
+
+        print(f"\n{Colors.GREEN}Security Monitoring:{Colors.END}")
+        print("  • Set up automated security updates")
+        print("  • Configure log monitoring and alerting")
+        print("  • Regular backup verification")
+        print("  • Security patch management")
+
+        print(f"\n{Colors.GREEN}Advanced Security:{Colors.END}")
+        print("  • Implement intrusion detection (AIDE, OSSEC)")
+        print("  • Set up centralized logging")
+        print("  • Configure security information and event management (SIEM)")
+        print("  • Regular penetration testing")
+
+        self._offer_final_options()
 
 
 def main():
