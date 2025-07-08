@@ -42,7 +42,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-        pip install -e .
         
     - name: Run Black (code formatting)
       run: black --check --diff .
@@ -76,7 +75,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+        pip install -r requirements-dev.txt
         
     - name: Run Bandit (security linting)
       run: |
@@ -139,7 +138,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+        pip install -r requirements-test.txt
         
     - name: Test script execution
       run: |
@@ -226,7 +225,7 @@ jobs:
     - name: Install package
       run: |
         python -m pip install --upgrade pip
-        pip install -e .
+        # No package installation needed - script works standalone
         
     - name: Test basic functionality
       run: |
@@ -256,7 +255,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .
+        # No dependencies needed for performance testing
         
     - name: Performance benchmark
       run: |
