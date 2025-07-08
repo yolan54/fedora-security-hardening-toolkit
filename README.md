@@ -8,6 +8,10 @@
 
 A comprehensive, research-based security hardening toolkit for Fedora Linux systems. Built with enterprise-grade UX principles, transparent security implementation, and cross-platform compatibility.
 
+## Security
+
+This toolkit provides comprehensive security hardening for Fedora Linux systems with enterprise-grade UX principles and transparent implementation.
+
 ## 🎯 **What This Toolkit Does**
 
 This toolkit provides **three complementary tools** that work together to secure your Fedora system:
@@ -68,7 +72,7 @@ sudo dnf install -y python3 python3-pip bash curl wget
 sudo apt update && sudo apt install -y python3 python3-pip bash curl wget
 ```
 
-### **Installation**
+## Installation
 ```bash
 # Clone the repository
 git clone https://github.com/your-org/fedora-security-hardening-toolkit.git

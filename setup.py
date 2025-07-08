@@ -7,7 +7,6 @@ system for the security hardening toolkit.
 """
 
 from setuptools import setup, find_packages
-import os
 import sys
 
 # Ensure Python 3.8+
@@ -15,6 +14,7 @@ if sys.version_info < (3, 8):
     print("Error: Fedora Security Hardening Toolkit requires Python 3.8 or higher")
     print(f"Current Python version: {sys.version}")
     sys.exit(1)
+
 
 # Read long description from README
 def read_long_description():
@@ -25,6 +25,7 @@ def read_long_description():
     except FileNotFoundError:
         return "Comprehensive security hardening toolkit for Fedora Linux systems"
 
+
 # Read version from file or set default
 def get_version():
     """Get version from version file or set default"""
@@ -34,10 +35,11 @@ def get_version():
     except FileNotFoundError:
         return "1.0.0"
 
+
 # Development dependencies
 dev_requirements = [
     "pylint>=2.15.0",
-    "black>=22.0.0", 
+    "black>=22.0.0",
     "isort>=5.10.0",
     "mypy>=0.991",
     "pytest>=7.0.0",
@@ -48,7 +50,7 @@ dev_requirements = [
     "flake8>=5.0.0",
     "flake8-docstrings>=1.6.0",
     "flake8-security>=1.2.0",
-    "shellcheck-py>=0.9.0"
+    "shellcheck-py>=0.9.0",
 ]
 
 setup(
@@ -69,13 +71,13 @@ setup(
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
-        "Environment :: Console", 
+        "Environment :: Console",
         "Intended Audience :: System Administrators",
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9", 
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
@@ -97,14 +99,14 @@ setup(
         "linting": [
             "pylint>=2.15.0",
             "black>=22.0.0",
-            "isort>=5.10.0", 
+            "isort>=5.10.0",
             "mypy>=0.991",
             "flake8>=5.0.0",
         ],
         "security": [
             "bandit>=1.7.0",
             "safety>=2.0.0",
-        ]
+        ],
     },
     entry_points={
         "console_scripts": [
@@ -119,7 +121,7 @@ setup(
     package_data={
         "": [
             "README.md",
-            "LICENSE", 
+            "LICENSE",
             "CHANGELOG.md",
             "CONTRIBUTING.md",
             "*.sh",

@@ -26,7 +26,7 @@ def tests(session):
         "--cov-report=html",
         "--cov-report=xml",
         "tests/",
-        *session.posargs
+        *session.posargs,
     )
 
 
@@ -34,13 +34,13 @@ def tests(session):
 def lint(session):
     """Run linting tools."""
     session.install("-r", "requirements-dev.txt")
-    
+
     # Python code formatting and linting
     session.run("black", "--check", "--diff", ".")
     session.run("isort", "--check-only", "--diff", ".")
     session.run("flake8", ".")
     session.run("pylint", "security_audit.py")
-    
+
     # Shell script linting
     session.run("shellcheck", "security_hardening.sh", "security_validation.sh")
 
@@ -64,11 +64,11 @@ def type_check(session):
 def security(session):
     """Run security scanning tools."""
     session.install("-r", "requirements-dev.txt")
-    
+
     # Python security scanning
     session.run("bandit", "-r", ".", "--severity-level", "medium")
     session.run("safety", "check")
-    
+
     # Note: Advanced security scanning tools like semgrep can be added here
     session.log("Basic security scanning complete")
 
@@ -91,7 +91,7 @@ def coverage(session):
         "--cov-report=xml",
         "--cov-report=term",
         "--cov-fail-under=80",
-        "tests/"
+        "tests/",
     )
 
 
@@ -104,7 +104,7 @@ def performance(session):
         "tests/performance/",
         "--benchmark-only",
         "--benchmark-sort=mean",
-        *session.posargs
+        *session.posargs,
     )
 
 
@@ -146,22 +146,23 @@ def clean(session):
     """Clean up build artifacts and cache files."""
     import shutil
     import os
-    
+
     dirs_to_clean = [
         "build",
-        "dist", 
+        "dist",
         ".pytest_cache",
         "htmlcov",
         ".coverage*",
         ".mypy_cache",
         "__pycache__",
-        "*.egg-info"
+        "*.egg-info",
     ]
-    
+
     for dir_pattern in dirs_to_clean:
         try:
             if "*" in dir_pattern:
                 import glob
+
                 for path in glob.glob(dir_pattern):
                     if os.path.isdir(path):
                         shutil.rmtree(path)
@@ -197,7 +198,7 @@ def pre_commit(session):
 def validate_production(session):
     """Validate production readiness."""
     session.install("-r", "requirements-dev.txt")
-    
+
     # Run all quality checks
     session.run("black", "--check", ".")
     session.run("isort", "--check-only", ".")
@@ -205,13 +206,13 @@ def validate_production(session):
     session.run("mypy", "security_audit.py", "--strict")
     session.run("bandit", "-r", ".")
     session.run("safety", "check")
-    
+
     # Run tests
     session.run("pytest", "tests/", "--cov=.", "--cov-fail-under=80")
-    
+
     # Validate shell scripts
     session.run("shellcheck", "security_hardening.sh", "security_validation.sh")
-    
+
     session.log("✅ All production readiness checks passed!")
 
 
@@ -220,18 +221,18 @@ def release_check(session):
     """Check if ready for release."""
     session.install("-r", "requirements-dev.txt")
     session.install("build", "twine")
-    
+
     # Build and check distribution
     session.run("python", "-m", "build")
     session.run("twine", "check", "dist/*")
-    
+
     # Run full test suite
     session.run("pytest", "tests/", "--cov=.", "--cov-fail-under=90")
-    
+
     # Security checks
     session.run("bandit", "-r", ".", "--severity-level", "high")
     session.run("safety", "check")
-    
+
     session.log("✅ Ready for release!")
 
 
