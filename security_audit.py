@@ -1511,7 +1511,13 @@ class SecurityAuditor:
         self.compliance_status = {'cis_controls': [], 'nist_csf': []}
 
         # Re-initialize system info
-        self.system_info = self._get_system_info()
+        self.system_info = {
+            'distribution': SystemInfo.detect_distribution(),
+            'architecture': SystemInfo.get_architecture(),
+            'kernel_version': SystemInfo.get_kernel_version(),
+            'is_vm': SystemInfo.is_virtual_machine(),
+            'timestamp': datetime.now().isoformat()
+        }
 
         print(f"\n{Colors.CYAN}System re-scan in progress...{Colors.END}")
 
