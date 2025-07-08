@@ -1018,11 +1018,11 @@ class SecurityAuditor:
             return
 
         print(f"\n{Colors.BOLD}{Colors.YELLOW}🔧 INTERACTIVE REMEDIATION AVAILABLE{Colors.END}")
-        print("Would you like to:")
-        print(f"  {Colors.GREEN}1{Colors.END} - View detailed remediation steps")
-        print(f"  {Colors.GREEN}2{Colors.END} - Generate automated fix script")
-        print(f"  {Colors.GREEN}3{Colors.END} - Run security hardening script")
-        print(f"  {Colors.GREEN}4{Colors.END} - Continue without remediation")
+        print("Choose how you'd like to address the security issues found:")
+        print(f"  {Colors.GREEN}1{Colors.END} - 📋 View detailed remediation steps (with follow-up options)")
+        print(f"  {Colors.GREEN}2{Colors.END} - 📜 Generate automated fix script for manual review")
+        print(f"  {Colors.GREEN}3{Colors.END} - 🛡️  Run comprehensive security hardening script")
+        print(f"  {Colors.GREEN}4{Colors.END} - ⏭️  Continue without remediation (manual fixes)")
 
         try:
             choice = input(f"\n{Colors.CYAN}Enter your choice (1-4): {Colors.END}").strip()
@@ -1080,6 +1080,9 @@ class SecurityAuditor:
                 print("-" * 60)
 
         print(f"\n{Colors.BLUE}💡 Apply fixes in priority order for maximum security improvement.{Colors.END}")
+
+        # Continue with more options after showing detailed steps
+        self._continue_remediation_options()
 
     def _generate_fix_script(self) -> None:
         """Generate an automated fix script for the issues found."""
@@ -1144,7 +1147,148 @@ class SecurityAuditor:
         print(f"  {Colors.BOLD}sudo ./security_hardening.sh{Colors.END}")
 
         print(f"\n{Colors.BLUE}💡 The hardening script will address many of the issues found in this audit.{Colors.END}")
-    
+
+    def _continue_remediation_options(self) -> None:
+        """Continue with additional remediation options after showing detailed steps."""
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}🔄 WHAT WOULD YOU LIKE TO DO NEXT?{Colors.END}")
+        print("Now that you've seen the detailed remediation steps:")
+        print(f"  {Colors.GREEN}1{Colors.END} - Generate automated fix script for these issues")
+        print(f"  {Colors.GREEN}2{Colors.END} - Run comprehensive security hardening script")
+        print(f"  {Colors.GREEN}3{Colors.END} - Apply a specific fix interactively")
+        print(f"  {Colors.GREEN}4{Colors.END} - Exit and apply fixes manually")
+
+        try:
+            choice = input(f"\n{Colors.CYAN}Enter your choice (1-4): {Colors.END}").strip()
+
+            if choice == '1':
+                self._generate_fix_script()
+            elif choice == '2':
+                self._suggest_hardening_script()
+            elif choice == '3':
+                self._apply_specific_fix()
+            elif choice == '4':
+                print(f"\n{Colors.BLUE}✅ Exiting. Apply the fixes manually using the commands shown above.{Colors.END}")
+                print(f"{Colors.YELLOW}💡 Tip: Run the audit again after applying fixes to see your improved security score!{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}Invalid choice. Exiting remediation.{Colors.END}")
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Remediation cancelled by user.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Exiting remediation.{Colors.END}")
+
+    def _apply_specific_fix(self) -> None:
+        """Allow user to apply a specific fix interactively."""
+        if not self.recommendations:
+            print(f"{Colors.YELLOW}No recommendations available for interactive fixing.{Colors.END}")
+            return
+
+        print(f"\n{Colors.BOLD}{Colors.CYAN}🔧 INTERACTIVE FIX APPLICATION{Colors.END}")
+        print("Select which issue to fix:")
+
+        # Show numbered list of issues
+        for i, rec in enumerate(self.recommendations, 1):
+            if isinstance(rec, dict):
+                priority = rec.get('priority', 'MEDIUM')
+                issue = rec.get('issue', 'Unknown issue')
+
+                # Color code by priority
+                if priority == 'CRITICAL':
+                    priority_icon = "🔴"
+                elif priority == 'HIGH':
+                    priority_icon = "🟠"
+                elif priority == 'MEDIUM':
+                    priority_icon = "🟡"
+                else:
+                    priority_icon = "🟢"
+
+                print(f"  {Colors.GREEN}{i}{Colors.END} - {priority_icon} {issue}")
+            else:
+                print(f"  {Colors.GREEN}{i}{Colors.END} - 🟡 {rec}")
+
+        print(f"  {Colors.GREEN}0{Colors.END} - Return to main menu")
+
+        try:
+            choice = input(f"\n{Colors.CYAN}Enter issue number to fix (0-{len(self.recommendations)}): {Colors.END}").strip()
+
+            if choice == '0':
+                self._continue_remediation_options()
+                return
+
+            try:
+                issue_num = int(choice)
+                if 1 <= issue_num <= len(self.recommendations):
+                    self._execute_specific_fix(issue_num - 1)
+                else:
+                    print(f"{Colors.RED}Invalid issue number. Please try again.{Colors.END}")
+                    self._apply_specific_fix()
+            except ValueError:
+                print(f"{Colors.RED}Please enter a valid number.{Colors.END}")
+                self._apply_specific_fix()
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Fix application cancelled.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Returning to menu.{Colors.END}")
+
+    def _execute_specific_fix(self, issue_index: int) -> None:
+        """Execute a specific fix with user confirmation."""
+        rec = self.recommendations[issue_index]
+
+        if isinstance(rec, dict):
+            issue = rec.get('issue', 'Unknown issue')
+            impact = rec.get('impact', 'Unknown impact')
+            fix = rec.get('fix', 'No fix provided')
+            priority = rec.get('priority', 'MEDIUM')
+        else:
+            issue = rec
+            impact = "General security improvement"
+            fix = "Manual configuration required"
+            priority = "MEDIUM"
+
+        print(f"\n{Colors.BOLD}{Colors.BLUE}🔧 APPLYING FIX{Colors.END}")
+        print(f"Issue: {issue}")
+        print(f"Impact: {impact}")
+        print(f"Priority: {priority}")
+        print(f"Command: {Colors.GREEN}{fix}{Colors.END}")
+
+        # Ask for confirmation
+        try:
+            confirm = input(f"\n{Colors.YELLOW}Do you want to apply this fix? (y/N): {Colors.END}").strip().lower()
+
+            if confirm in ['y', 'yes']:
+                if fix.startswith('sudo ') or fix.startswith('echo '):
+                    print(f"\n{Colors.BLUE}Executing: {fix}{Colors.END}")
+                    try:
+                        # Execute the command
+                        result = self.executor.run_command(fix)
+                        if result['success']:
+                            print(f"{Colors.GREEN}✅ Fix applied successfully!{Colors.END}")
+                            if result['stdout']:
+                                print(f"Output: {result['stdout']}")
+                        else:
+                            print(f"{Colors.RED}❌ Fix failed: {result['stderr']}{Colors.END}")
+                    except Exception as e:
+                        print(f"{Colors.RED}❌ Error executing fix: {e}{Colors.END}")
+                else:
+                    print(f"{Colors.YELLOW}⚠️  This fix requires manual configuration. Please apply it manually.{Colors.END}")
+                    print(f"Command: {fix}")
+            else:
+                print(f"{Colors.BLUE}Fix skipped.{Colors.END}")
+
+            # Ask if they want to continue with more fixes
+            continue_choice = input(f"\n{Colors.CYAN}Apply another fix? (y/N): {Colors.END}").strip().lower()
+            if continue_choice in ['y', 'yes']:
+                self._apply_specific_fix()
+            else:
+                print(f"{Colors.BLUE}✅ Returning to main menu.{Colors.END}")
+                self._continue_remediation_options()
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Fix application cancelled.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Returning to menu.{Colors.END}")
+
     def run_audit(self) -> None:
         """Run complete security audit."""
         self.print_header()
