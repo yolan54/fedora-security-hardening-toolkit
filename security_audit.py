@@ -1131,8 +1131,13 @@ class SecurityAuditor:
             print(f"{Colors.YELLOW}⚠️  Review the script before running: cat {script_filename}{Colors.END}")
             print(f"{Colors.BLUE}🚀 Execute with: sudo ./{script_filename}{Colors.END}")
 
+            # Continue with more options after generating script
+            self._continue_after_script_generation(script_filename)
+
         except Exception as e:
             print(f"{Colors.RED}❌ Failed to generate fix script: {e}{Colors.END}")
+            # Still offer to continue even if script generation failed
+            self._continue_remediation_options()
 
     def _suggest_hardening_script(self) -> None:
         """Suggest running the comprehensive hardening script."""
@@ -1147,6 +1152,85 @@ class SecurityAuditor:
         print(f"  {Colors.BOLD}sudo ./security_hardening.sh{Colors.END}")
 
         print(f"\n{Colors.BLUE}💡 The hardening script will address many of the issues found in this audit.{Colors.END}")
+
+        # Continue with options after suggesting hardening script
+        self._continue_after_hardening_suggestion()
+
+    def _continue_after_hardening_suggestion(self) -> None:
+        """Continue with options after suggesting the hardening script."""
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}🔄 HARDENING SCRIPT SUGGESTED - WHAT'S NEXT?{Colors.END}")
+        print("The comprehensive hardening script is recommended. What would you like to do?")
+        print(f"  {Colors.GREEN}1{Colors.END} - 🚀 Run the hardening script now")
+        print(f"  {Colors.GREEN}2{Colors.END} - 📜 Generate automated fix script instead")
+        print(f"  {Colors.GREEN}3{Colors.END} - 🔧 Apply individual fixes interactively")
+        print(f"  {Colors.GREEN}4{Colors.END} - ⏭️  Exit and run hardening script manually")
+
+        try:
+            choice = input(f"\n{Colors.CYAN}Enter your choice (1-4): {Colors.END}").strip()
+
+            if choice == '1':
+                self._execute_hardening_script()
+            elif choice == '2':
+                self._generate_fix_script()
+            elif choice == '3':
+                self._apply_specific_fix()
+            elif choice == '4':
+                print(f"\n{Colors.BLUE}✅ Exiting. Run the hardening script when ready: sudo ./security_hardening.sh{Colors.END}")
+                print(f"{Colors.YELLOW}💡 Tip: The hardening script provides comprehensive security improvements{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}Invalid choice. Returning to main menu.{Colors.END}")
+                self._continue_remediation_options()
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Hardening script execution cancelled by user.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Returning to main menu.{Colors.END}")
+            self._continue_remediation_options()
+
+    def _execute_hardening_script(self) -> None:
+        """Execute the security hardening script."""
+        print(f"\n{Colors.BOLD}{Colors.BLUE}🛡️  LAUNCHING SECURITY HARDENING SCRIPT{Colors.END}")
+
+        # Check if hardening script exists
+        if not os.path.exists('security_hardening.sh'):
+            print(f"{Colors.RED}❌ Security hardening script not found: security_hardening.sh{Colors.END}")
+            print(f"{Colors.YELLOW}💡 Make sure the script is in the current directory{Colors.END}")
+            self._continue_after_hardening_suggestion()
+            return
+
+        print(f"The hardening script will:")
+        print(f"  {Colors.GREEN}•{Colors.END} Apply comprehensive security configurations")
+        print(f"  {Colors.GREEN}•{Colors.END} Create backups before making changes")
+        print(f"  {Colors.GREEN}•{Colors.END} Provide interactive choices for each change")
+        print(f"  {Colors.GREEN}•{Colors.END} Allow rollback if needed")
+
+        try:
+            confirm = input(f"\n{Colors.YELLOW}Launch the hardening script? (y/N): {Colors.END}").strip().lower()
+
+            if confirm in ['y', 'yes']:
+                print(f"\n{Colors.BLUE}🚀 Launching security hardening script...{Colors.END}")
+                print(f"{Colors.CYAN}Note: The script will run in interactive mode{Colors.END}")
+
+                # Execute the hardening script
+                try:
+                    import subprocess
+                    subprocess.run(['sudo', './security_hardening.sh'], check=False)
+
+                    print(f"\n{Colors.GREEN}✅ Hardening script execution completed{Colors.END}")
+                    print(f"{Colors.BLUE}💡 Run the security audit again to see improvements{Colors.END}")
+
+                except Exception as e:
+                    print(f"{Colors.RED}❌ Error launching hardening script: {e}{Colors.END}")
+                    self._continue_after_hardening_suggestion()
+            else:
+                print(f"{Colors.BLUE}Hardening script launch cancelled.{Colors.END}")
+                self._continue_after_hardening_suggestion()
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Hardening script launch cancelled by user.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Returning to menu.{Colors.END}")
+            self._continue_after_hardening_suggestion()
 
     def _continue_remediation_options(self) -> None:
         """Continue with additional remediation options after showing detailed steps."""
@@ -1288,6 +1372,107 @@ class SecurityAuditor:
             print(f"\n{Colors.YELLOW}Fix application cancelled.{Colors.END}")
         except Exception:
             print(f"{Colors.YELLOW}Input error. Returning to menu.{Colors.END}")
+
+    def _continue_after_script_generation(self, script_filename: str) -> None:
+        """Continue with options after generating a fix script."""
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}🔄 SCRIPT GENERATED - WHAT'S NEXT?{Colors.END}")
+        print("Your automated fix script is ready. What would you like to do?")
+        print(f"  {Colors.GREEN}1{Colors.END} - 🔍 Review the generated script contents")
+        print(f"  {Colors.GREEN}2{Colors.END} - 🚀 Execute the script now (with confirmation)")
+        print(f"  {Colors.GREEN}3{Colors.END} - 🛡️  Run comprehensive security hardening instead")
+        print(f"  {Colors.GREEN}4{Colors.END} - 🔧 Apply individual fixes interactively")
+        print(f"  {Colors.GREEN}5{Colors.END} - ⏭️  Exit and run script manually later")
+
+        try:
+            choice = input(f"\n{Colors.CYAN}Enter your choice (1-5): {Colors.END}").strip()
+
+            if choice == '1':
+                self._review_generated_script(script_filename)
+            elif choice == '2':
+                self._execute_generated_script(script_filename)
+            elif choice == '3':
+                self._suggest_hardening_script()
+            elif choice == '4':
+                self._apply_specific_fix()
+            elif choice == '5':
+                print(f"\n{Colors.BLUE}✅ Exiting. Execute the script when ready: sudo ./{script_filename}{Colors.END}")
+                print(f"{Colors.YELLOW}💡 Tip: Run the audit again after applying fixes to see your improved security score!{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}Invalid choice. Returning to main menu.{Colors.END}")
+                self._continue_remediation_options()
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Script execution cancelled by user.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Returning to main menu.{Colors.END}")
+            self._continue_remediation_options()
+
+    def _review_generated_script(self, script_filename: str) -> None:
+        """Show the contents of the generated script."""
+        print(f"\n{Colors.BOLD}{Colors.CYAN}📜 GENERATED SCRIPT CONTENTS{Colors.END}")
+        print("=" * 60)
+
+        try:
+            with open(script_filename, 'r') as f:
+                script_content = f.read()
+
+            print(script_content)
+            print("=" * 60)
+
+            # Continue with options after reviewing
+            print(f"\n{Colors.BLUE}Script review complete. What would you like to do next?{Colors.END}")
+            self._continue_after_script_generation(script_filename)
+
+        except Exception as e:
+            print(f"{Colors.RED}❌ Could not read script file: {e}{Colors.END}")
+            self._continue_remediation_options()
+
+    def _execute_generated_script(self, script_filename: str) -> None:
+        """Execute the generated script with user confirmation."""
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}⚠️  SCRIPT EXECUTION CONFIRMATION{Colors.END}")
+        print(f"You are about to execute: {script_filename}")
+        print(f"This will apply {len(self.recommendations)} security fixes to your system.")
+        print(f"\n{Colors.RED}⚠️  WARNING: This will make system changes!{Colors.END}")
+
+        try:
+            confirm = input(f"\n{Colors.YELLOW}Are you sure you want to execute the script? (yes/NO): {Colors.END}").strip().lower()
+
+            if confirm == 'yes':
+                print(f"\n{Colors.BLUE}🚀 Executing script: {script_filename}{Colors.END}")
+                try:
+                    result = self.executor.run_command(f"bash {script_filename}")
+                    if result['success']:
+                        print(f"{Colors.GREEN}✅ Script executed successfully!{Colors.END}")
+                        if result['stdout']:
+                            print(f"Output:\n{result['stdout']}")
+
+                        print(f"\n{Colors.GREEN}🎉 Security fixes have been applied!{Colors.END}")
+                        print(f"{Colors.BLUE}💡 Recommendation: Run the security audit again to verify improvements{Colors.END}")
+
+                        # Ask if they want to run audit again
+                        rerun = input(f"\n{Colors.CYAN}Run security audit again now? (y/N): {Colors.END}").strip().lower()
+                        if rerun in ['y', 'yes']:
+                            print(f"\n{Colors.BLUE}🔄 Restarting security audit...{Colors.END}")
+                            # Note: In a real implementation, you might want to restart the audit
+                            print(f"{Colors.YELLOW}Please run 'python3 security_audit.py' again to see improvements{Colors.END}")
+                        else:
+                            print(f"{Colors.BLUE}✅ Fixes applied. Run audit manually when ready.{Colors.END}")
+                    else:
+                        print(f"{Colors.RED}❌ Script execution failed: {result['stderr']}{Colors.END}")
+                        self._continue_after_script_generation(script_filename)
+
+                except Exception as e:
+                    print(f"{Colors.RED}❌ Error executing script: {e}{Colors.END}")
+                    self._continue_after_script_generation(script_filename)
+            else:
+                print(f"{Colors.BLUE}Script execution cancelled.{Colors.END}")
+                self._continue_after_script_generation(script_filename)
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Script execution cancelled by user.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Returning to menu.{Colors.END}")
+            self._continue_after_script_generation(script_filename)
 
     def run_audit(self) -> None:
         """Run complete security audit."""
