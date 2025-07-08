@@ -417,6 +417,411 @@ class SecurityAuditor:
             'firewalld_active': firewalld_status['success'] and firewalld_status['stdout'] == 'active'
         }
 
+    def audit_ssh_security(self) -> None:
+        """Comprehensive SSH security configuration audit."""
+        self.print_section("SSH SECURITY CONFIGURATION AUDIT (CIS 5.2)")
+
+        print(f"{Colors.BOLD}{Colors.BLUE}🔐 SSH SECURITY ANALYSIS{Colors.END}")
+        print("  Analyzing SSH daemon configuration and access controls...")
+        print()
+
+        # Check if SSH is running
+        ssh_status = self.executor.run_command("systemctl is-active sshd")
+
+        if ssh_status['success'] and ssh_status['stdout'] == 'active':
+            self.print_finding("INFO", "SSH service is active - analyzing configuration")
+
+            # Analyze SSH configuration file
+            ssh_config_path = '/etc/ssh/sshd_config'
+            if os.path.exists(ssh_config_path):
+                self._analyze_ssh_config(ssh_config_path)
+            else:
+                self.print_finding("WARN", "SSH configuration file not found")
+
+            # Check SSH key authentication
+            self._check_ssh_keys()
+
+            # Analyze SSH connections and security
+            self._analyze_ssh_connections()
+
+        else:
+            self.print_finding("INFO", "SSH service not active - system not remotely accessible")
+            print(f"    {Colors.GREEN}🔒 No remote access risk{Colors.END}")
+
+        self.findings['ssh'] = {
+            'service_active': ssh_status['success'] and ssh_status['stdout'] == 'active'
+        }
+
+    def audit_system_hardening(self) -> None:
+        """Audit system hardening parameters and kernel security."""
+        self.print_section("SYSTEM HARDENING AUDIT (CIS 3.1-3.4)")
+
+        print(f"{Colors.BOLD}{Colors.BLUE}⚙️  SYSTEM HARDENING ANALYSIS{Colors.END}")
+        print("  Analyzing kernel parameters and system security settings...")
+        print()
+
+        # Check kernel parameters
+        self._check_kernel_parameters()
+
+        # Check system services
+        self._check_system_services()
+
+        # Check file permissions
+        self._check_critical_file_permissions()
+
+        self.findings['system_hardening'] = {'analyzed': True}
+
+    def _check_kernel_parameters(self) -> None:
+        """Check security-related kernel parameters."""
+        print(f"{Colors.CYAN}📊 KERNEL SECURITY PARAMETERS:{Colors.END}")
+
+        security_params = {
+            'net.ipv4.ip_forward': ('0', 'IP forwarding disabled'),
+            'net.ipv4.conf.all.send_redirects': ('0', 'ICMP redirects disabled'),
+            'net.ipv4.conf.default.send_redirects': ('0', 'Default ICMP redirects disabled'),
+            'net.ipv4.conf.all.accept_source_route': ('0', 'Source routing disabled'),
+            'net.ipv4.conf.all.accept_redirects': ('0', 'ICMP redirect acceptance disabled'),
+            'net.ipv4.conf.all.log_martians': ('1', 'Martian packet logging enabled'),
+            'net.ipv4.tcp_syncookies': ('1', 'SYN flood protection enabled'),
+            'kernel.dmesg_restrict': ('1', 'Kernel log access restricted'),
+            'kernel.kptr_restrict': ('2', 'Kernel pointer access restricted')
+        }
+
+        secure_params = 0
+        total_params = len(security_params)
+
+        for param, (expected_value, description) in security_params.items():
+            result = self.executor.run_command(f"sysctl {param}")
+            if result['success']:
+                current_value = result['stdout'].split('=')[-1].strip()
+                if current_value == expected_value:
+                    self.print_finding("PASS", description)
+                    secure_params += 1
+                else:
+                    self.print_finding("WARN", f"{description} - current: {current_value}, expected: {expected_value}")
+                    self.recommendations.append({
+                        'priority': 'MEDIUM',
+                        'issue': f'Kernel parameter {param} not optimally configured',
+                        'impact': 'Reduced network security hardening',
+                        'fix': f'echo "{param} = {expected_value}" >> /etc/sysctl.conf'
+                    })
+            else:
+                self.print_finding("WARN", f"Could not check {param}")
+
+        security_percentage = (secure_params / total_params) * 100
+        print(f"    {Colors.CYAN}🔧 Kernel hardening: {secure_params}/{total_params} ({security_percentage:.0f}%){Colors.END}")
+
+    def _check_system_services(self) -> None:
+        """Check for unnecessary or risky system services."""
+        print(f"\n{Colors.CYAN}🔍 SYSTEM SERVICES ANALYSIS:{Colors.END}")
+
+        # Check for risky services that should typically be disabled
+        risky_services = [
+            'telnet', 'rsh', 'rlogin', 'ftp', 'tftp', 'xinetd',
+            'avahi-daemon', 'cups', 'nfs-server', 'rpcbind'
+        ]
+
+        active_risky_services = []
+
+        for service in risky_services:
+            status = self.executor.run_command(f"systemctl is-active {service}")
+            if status['success'] and status['stdout'] == 'active':
+                active_risky_services.append(service)
+                self.print_finding("WARN", f"Potentially risky service active: {service}")
+                self.recommendations.append({
+                    'priority': 'MEDIUM',
+                    'issue': f'Risky service {service} is active',
+                    'impact': 'Increased attack surface and potential vulnerabilities',
+                    'fix': f'sudo systemctl disable --now {service}'
+                })
+
+        if not active_risky_services:
+            self.print_finding("PASS", "No risky services detected running")
+            print(f"    {Colors.GREEN}🔒 Minimal service footprint maintained{Colors.END}")
+        else:
+            print(f"    {Colors.YELLOW}⚠️  {len(active_risky_services)} risky service(s) active{Colors.END}")
+
+    def _check_critical_file_permissions(self) -> None:
+        """Check permissions on critical system files."""
+        print(f"\n{Colors.CYAN}📁 CRITICAL FILE PERMISSIONS:{Colors.END}")
+
+        critical_files = {
+            '/etc/passwd': ('644', 'User account information'),
+            '/etc/shadow': ('000', 'Password hashes'),
+            '/etc/group': ('644', 'Group information'),
+            '/etc/gshadow': ('000', 'Group password hashes'),
+            '/etc/ssh/sshd_config': ('600', 'SSH daemon configuration')
+        }
+
+        secure_files = 0
+
+        for file_path, (expected_perms, description) in critical_files.items():
+            if os.path.exists(file_path):
+                stat_result = self.executor.run_command(f"stat -c '%a' {file_path}")
+                if stat_result['success']:
+                    current_perms = stat_result['stdout'].strip()
+                    if expected_perms == '000':  # Special case for shadow files
+                        if current_perms in ['000', '640', '600']:
+                            self.print_finding("PASS", f"{description} properly secured")
+                            secure_files += 1
+                        else:
+                            self.print_finding("WARN", f"{description} permissions too open: {current_perms}")
+                    elif current_perms == expected_perms:
+                        self.print_finding("PASS", f"{description} properly secured")
+                        secure_files += 1
+                    else:
+                        self.print_finding("WARN", f"{description} permissions: {current_perms} (expected: {expected_perms})")
+                        self.recommendations.append({
+                            'priority': 'HIGH',
+                            'issue': f'Incorrect permissions on {file_path}',
+                            'impact': 'Potential unauthorized access to sensitive data',
+                            'fix': f'sudo chmod {expected_perms} {file_path}'
+                        })
+            else:
+                self.print_finding("INFO", f"{description} file not found: {file_path}")
+
+        print(f"    {Colors.CYAN}🔐 File security: {secure_files}/{len(critical_files)} files properly secured{Colors.END}")
+
+    def audit_user_accounts(self) -> None:
+        """Audit user accounts and access controls."""
+        self.print_section("USER ACCOUNT SECURITY AUDIT (CIS 5.1)")
+
+        print(f"{Colors.BOLD}{Colors.BLUE}👥 USER ACCOUNT ANALYSIS{Colors.END}")
+        print("  Analyzing user accounts, privileges, and access controls...")
+        print()
+
+        # Check for users with UID 0 (root privileges)
+        self._check_privileged_users()
+
+        # Check password policies
+        self._check_password_policies()
+
+        # Check for inactive accounts
+        self._check_inactive_accounts()
+
+        self.findings['user_accounts'] = {'analyzed': True}
+
+    def _check_privileged_users(self) -> None:
+        """Check for users with root privileges."""
+        print(f"{Colors.CYAN}👑 PRIVILEGED USER ANALYSIS:{Colors.END}")
+
+        # Check for UID 0 users
+        passwd_result = self.executor.run_command("awk -F: '$3 == 0 {print $1}' /etc/passwd")
+        if passwd_result['success']:
+            uid_zero_users = passwd_result['stdout'].strip().split('\n')
+            uid_zero_users = [user for user in uid_zero_users if user]  # Remove empty strings
+
+            if len(uid_zero_users) == 1 and uid_zero_users[0] == 'root':
+                self.print_finding("PASS", "Only root user has UID 0")
+            elif len(uid_zero_users) > 1:
+                self.print_finding("WARN", f"Multiple UID 0 users detected: {', '.join(uid_zero_users)}")
+                self.recommendations.append({
+                    'priority': 'HIGH',
+                    'issue': 'Multiple users with root privileges (UID 0)',
+                    'impact': 'Increased risk of privilege escalation',
+                    'fix': 'Review and remove unnecessary UID 0 accounts'
+                })
+
+        # Check sudo group membership
+        sudo_result = self.executor.run_command("getent group sudo wheel")
+        if sudo_result['success']:
+            sudo_lines = [line for line in sudo_result['stdout'].split('\n') if line]
+            sudo_users = []
+            for line in sudo_lines:
+                if ':' in line:
+                    users = line.split(':')[-1]
+                    if users:
+                        sudo_users.extend(users.split(','))
+
+            if sudo_users:
+                self.print_finding("INFO", f"Users with sudo access: {', '.join(set(sudo_users))}")
+                print(f"    {Colors.CYAN}🔑 {len(set(sudo_users))} user(s) have administrative privileges{Colors.END}")
+            else:
+                self.print_finding("WARN", "No users found with sudo access")
+
+    def _check_password_policies(self) -> None:
+        """Check password policy configuration."""
+        print(f"\n{Colors.CYAN}🔒 PASSWORD POLICY ANALYSIS:{Colors.END}")
+
+        # Check if password quality is enforced
+        pam_files = ['/etc/pam.d/passwd', '/etc/pam.d/system-auth']
+        quality_enforced = False
+
+        for pam_file in pam_files:
+            if os.path.exists(pam_file):
+                try:
+                    with open(pam_file, 'r') as f:
+                        content = f.read()
+                        if 'pam_pwquality' in content or 'pam_cracklib' in content:
+                            quality_enforced = True
+                            break
+                except Exception:
+                    pass
+
+        if quality_enforced:
+            self.print_finding("PASS", "Password quality enforcement configured")
+        else:
+            self.print_finding("WARN", "Password quality enforcement not detected")
+            self.recommendations.append({
+                'priority': 'MEDIUM',
+                'issue': 'Password quality not enforced',
+                'impact': 'Weak passwords may be allowed',
+                'fix': 'Configure pam_pwquality in PAM configuration'
+            })
+
+        # Check login.defs for password aging
+        login_defs_path = '/etc/login.defs'
+        if os.path.exists(login_defs_path):
+            try:
+                with open(login_defs_path, 'r') as f:
+                    content = f.read()
+                    if 'PASS_MAX_DAYS' in content:
+                        self.print_finding("PASS", "Password aging policy configured")
+                    else:
+                        self.print_finding("WARN", "Password aging not configured")
+            except Exception:
+                self.print_finding("WARN", "Could not read login.defs")
+
+    def _check_inactive_accounts(self) -> None:
+        """Check for inactive or potentially compromised accounts."""
+        print(f"\n{Colors.CYAN}💤 INACTIVE ACCOUNT ANALYSIS:{Colors.END}")
+
+        # Check for accounts that haven't logged in recently
+        last_result = self.executor.run_command("last -n 20")
+        if last_result['success']:
+            recent_logins = len([line for line in last_result['stdout'].split('\n') if line and 'wtmp begins' not in line])
+            self.print_finding("INFO", f"Recent login activity detected for {recent_logins} sessions")
+
+        # Check for locked accounts
+        locked_result = self.executor.run_command("passwd -S -a 2>/dev/null | grep -c ' L '")
+        if locked_result['success'] and locked_result['stdout'].isdigit():
+            locked_count = int(locked_result['stdout'])
+            if locked_count > 0:
+                self.print_finding("INFO", f"Locked user accounts: {locked_count}")
+            else:
+                self.print_finding("INFO", "No locked user accounts detected")
+
+    def _analyze_ssh_config(self, config_path: str) -> None:
+        """Analyze SSH configuration for security best practices."""
+        try:
+            with open(config_path, 'r') as f:
+                config_content = f.read()
+
+            print(f"{Colors.CYAN}📊 SSH CONFIGURATION ANALYSIS:{Colors.END}")
+
+            # Check root login
+            if 'PermitRootLogin no' in config_content:
+                self.print_finding("PASS", "Root login disabled - excellent security")
+            elif 'PermitRootLogin' in config_content:
+                self.print_finding("WARN", "Root login may be enabled")
+                self.recommendations.append({
+                    'priority': 'HIGH',
+                    'issue': 'Root SSH login not explicitly disabled',
+                    'impact': 'Direct root access increases attack surface',
+                    'fix': 'Add "PermitRootLogin no" to /etc/ssh/sshd_config'
+                })
+            else:
+                self.print_finding("WARN", "Root login setting not explicitly configured")
+
+            # Check password authentication
+            if 'PasswordAuthentication no' in config_content:
+                self.print_finding("PASS", "Password authentication disabled - using key-based auth")
+                print(f"    {Colors.GREEN}🔑 Key-based authentication enforced{Colors.END}")
+            elif 'PasswordAuthentication yes' in config_content:
+                self.print_finding("WARN", "Password authentication enabled")
+                self.recommendations.append({
+                    'priority': 'MEDIUM',
+                    'issue': 'Password authentication enabled',
+                    'impact': 'Vulnerable to brute force attacks',
+                    'fix': 'Disable password auth: PasswordAuthentication no'
+                })
+
+            # Check SSH protocol version
+            if 'Protocol 2' in config_content or 'Protocol' not in config_content:
+                self.print_finding("PASS", "Using secure SSH protocol version 2")
+            else:
+                self.print_finding("FAIL", "Insecure SSH protocol configuration")
+
+            # Check port configuration
+            import re
+            port_match = re.search(r'Port\s+(\d+)', config_content)
+            if port_match:
+                port = port_match.group(1)
+                if port != '22':
+                    self.print_finding("PASS", f"SSH running on non-standard port {port}")
+                    print(f"    {Colors.GREEN}🔒 Security through obscurity applied{Colors.END}")
+                else:
+                    self.print_finding("INFO", "SSH running on standard port 22")
+                    print(f"    {Colors.YELLOW}💡 Consider changing to non-standard port{Colors.END}")
+
+        except Exception as e:
+            self.print_finding("WARN", f"Could not analyze SSH config: {e}")
+
+    def _check_ssh_keys(self) -> None:
+        """Check SSH key configuration and security."""
+        print(f"\n{Colors.CYAN}🔑 SSH KEY ANALYSIS:{Colors.END}")
+
+        # Check for SSH host keys
+        host_key_types = ['rsa', 'ecdsa', 'ed25519']
+        secure_keys = 0
+
+        for key_type in host_key_types:
+            key_path = f'/etc/ssh/ssh_host_{key_type}_key'
+            if os.path.exists(key_path):
+                if key_type == 'ed25519':
+                    self.print_finding("PASS", f"Modern {key_type.upper()} host key present")
+                    secure_keys += 1
+                elif key_type == 'ecdsa':
+                    self.print_finding("PASS", f"Secure {key_type.upper()} host key present")
+                    secure_keys += 1
+                elif key_type == 'rsa':
+                    # Check RSA key size
+                    key_info = self.executor.run_command(f"ssh-keygen -l -f {key_path}")
+                    if key_info['success'] and '4096' in key_info['stdout']:
+                        self.print_finding("PASS", "RSA host key is 4096-bit (secure)")
+                        secure_keys += 1
+                    elif key_info['success'] and '2048' in key_info['stdout']:
+                        self.print_finding("WARN", "RSA host key is 2048-bit (consider upgrading)")
+                    else:
+                        self.print_finding("WARN", "RSA host key size unknown or weak")
+
+        if secure_keys > 0:
+            print(f"    {Colors.GREEN}🔐 {secure_keys} secure host key(s) configured{Colors.END}")
+        else:
+            self.print_finding("WARN", "No secure host keys detected")
+
+    def _analyze_ssh_connections(self) -> None:
+        """Analyze current SSH connections and recent activity."""
+        print(f"\n{Colors.CYAN}📊 SSH CONNECTION ANALYSIS:{Colors.END}")
+
+        # Check current SSH connections
+        who_result = self.executor.run_command("who")
+        if who_result['success']:
+            ssh_sessions = [line for line in who_result['stdout'].split('\n') if 'pts/' in line]
+            if ssh_sessions:
+                self.print_finding("INFO", f"Active SSH sessions: {len(ssh_sessions)}")
+                for session in ssh_sessions[:3]:  # Show first 3 sessions
+                    print(f"    {Colors.CYAN}• {session.strip()}{Colors.END}")
+            else:
+                self.print_finding("INFO", "No active SSH sessions detected")
+
+        # Check recent SSH authentication attempts
+        auth_log = self.executor.run_command("journalctl -u sshd --since='24 hours ago' | grep -i 'authentication failure' | wc -l")
+        if auth_log['success'] and auth_log['stdout'].isdigit():
+            failed_attempts = int(auth_log['stdout'])
+            if failed_attempts > 0:
+                self.print_finding("WARN", f"SSH authentication failures in last 24h: {failed_attempts}")
+                if failed_attempts > 10:
+                    self.recommendations.append({
+                        'priority': 'MEDIUM',
+                        'issue': f'High SSH authentication failures ({failed_attempts})',
+                        'impact': 'Possible brute force attack in progress',
+                        'fix': 'Review logs: sudo journalctl -u sshd | grep "authentication failure"'
+                    })
+            else:
+                self.print_finding("PASS", "No SSH authentication failures in last 24 hours")
+                print(f"    {Colors.GREEN}🛡️  No brute force attempts detected{Colors.END}")
+
     def _analyze_firewall_services(self) -> None:
         """Analyze active firewall services and ports."""
         services_result = self.executor.run_command("firewall-cmd --list-services")
@@ -606,6 +1011,139 @@ class SecurityAuditor:
         print("  • Security best practices: https://docs.fedoraproject.org/en-US/quick-docs/securing-fedora/")
         print("  • CIS Controls: https://www.cisecurity.org/controls/")
         print("  • NIST Framework: https://www.nist.gov/cyberframework")
+
+    def _offer_interactive_remediation(self) -> None:
+        """Offer interactive remediation options to the user."""
+        if not self.recommendations:
+            return
+
+        print(f"\n{Colors.BOLD}{Colors.YELLOW}🔧 INTERACTIVE REMEDIATION AVAILABLE{Colors.END}")
+        print("Would you like to:")
+        print(f"  {Colors.GREEN}1{Colors.END} - View detailed remediation steps")
+        print(f"  {Colors.GREEN}2{Colors.END} - Generate automated fix script")
+        print(f"  {Colors.GREEN}3{Colors.END} - Run security hardening script")
+        print(f"  {Colors.GREEN}4{Colors.END} - Continue without remediation")
+
+        try:
+            choice = input(f"\n{Colors.CYAN}Enter your choice (1-4): {Colors.END}").strip()
+
+            if choice == '1':
+                self._show_detailed_remediation()
+            elif choice == '2':
+                self._generate_fix_script()
+            elif choice == '3':
+                self._suggest_hardening_script()
+            elif choice == '4':
+                print(f"{Colors.BLUE}ℹ️  Remediation skipped. Run audit again after manual fixes.{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}Invalid choice. Continuing...{Colors.END}")
+
+        except KeyboardInterrupt:
+            print(f"\n{Colors.YELLOW}Remediation cancelled by user.{Colors.END}")
+        except Exception:
+            print(f"{Colors.YELLOW}Input error. Continuing...{Colors.END}")
+
+    def _show_detailed_remediation(self) -> None:
+        """Show detailed remediation steps for each issue."""
+        print(f"\n{Colors.BOLD}{Colors.CYAN}📋 DETAILED REMEDIATION STEPS{Colors.END}")
+        print("=" * 60)
+
+        for i, rec in enumerate(self.recommendations, 1):
+            if isinstance(rec, dict):
+                priority = rec.get('priority', 'MEDIUM')
+                issue = rec.get('issue', 'Unknown issue')
+                impact = rec.get('impact', 'Unknown impact')
+                fix = rec.get('fix', 'No fix provided')
+
+                # Color code by priority
+                if priority == 'CRITICAL':
+                    priority_color = Colors.RED
+                    priority_icon = "🔴"
+                elif priority == 'HIGH':
+                    priority_color = Colors.RED
+                    priority_icon = "🟠"
+                elif priority == 'MEDIUM':
+                    priority_color = Colors.YELLOW
+                    priority_icon = "🟡"
+                else:
+                    priority_color = Colors.GREEN
+                    priority_icon = "🟢"
+
+                print(f"\n{Colors.BOLD}{i}. {priority_color}{priority_icon} {priority} PRIORITY{Colors.END}")
+                print(f"   Issue: {issue}")
+                print(f"   Impact: {impact}")
+                print(f"   Fix: {Colors.GREEN}{fix}{Colors.END}")
+                print("-" * 60)
+            else:
+                print(f"\n{Colors.BOLD}{i}. {Colors.YELLOW}🟡 RECOMMENDATION{Colors.END}")
+                print(f"   {rec}")
+                print("-" * 60)
+
+        print(f"\n{Colors.BLUE}💡 Apply fixes in priority order for maximum security improvement.{Colors.END}")
+
+    def _generate_fix_script(self) -> None:
+        """Generate an automated fix script for the issues found."""
+        script_content = [
+            "#!/bin/bash",
+            "# Automated Security Fix Script",
+            "# Generated by Fedora Security Hardening Toolkit",
+            f"# Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            "",
+            "set -euo pipefail",
+            "",
+            "echo 'Starting automated security fixes...'",
+            ""
+        ]
+
+        for i, rec in enumerate(self.recommendations, 1):
+            if isinstance(rec, dict):
+                issue = rec.get('issue', f'Issue {i}')
+                fix = rec.get('fix', '')
+                priority = rec.get('priority', 'MEDIUM')
+
+                script_content.extend([
+                    f"# Fix {i}: {issue} (Priority: {priority})",
+                    f"echo 'Applying fix {i}: {issue}'",
+                    fix if fix.startswith('sudo ') or fix.startswith('echo ') else f"# {fix}",
+                    "echo 'Fix applied successfully'",
+                    ""
+                ])
+
+        script_content.extend([
+            "echo 'All automated fixes completed!'",
+            "echo 'Please run the security audit again to verify fixes.'"
+        ])
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        script_filename = f"security_fixes_{timestamp}.sh"
+
+        try:
+            with open(script_filename, 'w') as f:
+                f.write('\n'.join(script_content))
+
+            # Make script executable
+            os.chmod(script_filename, 0o755)
+
+            print(f"\n{Colors.GREEN}✅ Fix script generated: {script_filename}{Colors.END}")
+            print(f"{Colors.YELLOW}⚠️  Review the script before running: cat {script_filename}{Colors.END}")
+            print(f"{Colors.BLUE}🚀 Execute with: sudo ./{script_filename}{Colors.END}")
+
+        except Exception as e:
+            print(f"{Colors.RED}❌ Failed to generate fix script: {e}{Colors.END}")
+
+    def _suggest_hardening_script(self) -> None:
+        """Suggest running the comprehensive hardening script."""
+        print(f"\n{Colors.BOLD}{Colors.GREEN}🛡️  COMPREHENSIVE SECURITY HARDENING{Colors.END}")
+        print("The security hardening script provides:")
+        print(f"  {Colors.GREEN}•{Colors.END} Interactive security implementation")
+        print(f"  {Colors.GREEN}•{Colors.END} Comprehensive backup and rollback")
+        print(f"  {Colors.GREEN}•{Colors.END} User choice and transparency")
+        print(f"  {Colors.GREEN}•{Colors.END} Step-by-step security improvements")
+
+        print(f"\n{Colors.CYAN}To run the hardening script:{Colors.END}")
+        print(f"  {Colors.BOLD}sudo ./security_hardening.sh{Colors.END}")
+
+        print(f"\n{Colors.BLUE}💡 The hardening script will address many of the issues found in this audit.{Colors.END}")
     
     def run_audit(self) -> None:
         """Run complete security audit."""
@@ -615,16 +1153,22 @@ class SecurityAuditor:
         if self.system_info['distribution'] == 'unknown':
             self.print_finding("WARN", "Unknown distribution detected - some checks may not work correctly")
         
-        # Run audit modules
+        # Run comprehensive audit modules
         self.audit_fail2ban()
         self.audit_firewall()
-        
+        self.audit_ssh_security()
+        self.audit_system_hardening()
+        self.audit_user_accounts()
+
         # Generate comprehensive report with enhanced analytics
         report_file = self.generate_report()
 
         print(f"\n{Colors.BOLD}{Colors.BLUE}📄 DETAILED REPORT:{Colors.END}")
         print(f"  📊 Full report saved: {report_file}")
         print(f"  🔍 Contains: Detailed findings, remediation steps, compliance mapping")
+
+        # Offer interactive remediation
+        self._offer_interactive_remediation()
 
 
 def main():
