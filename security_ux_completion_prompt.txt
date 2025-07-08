@@ -1,0 +1,57 @@
+SECURITY & UX COMPLETION DIRECTIVE
+===================================
+
+MISSION: Complete all security hardening and UX optimization tasks to production-grade standards based on official documentation, reputable forum guidance, and proven GitHub repository implementations.
+
+COMPLETION CRITERIA - SECURITY:
+1. ALL CI/CD pipeline checks must pass (100% green status)
+2. Security audit score must achieve 90%+ (enterprise-grade)
+3. All CIS Controls v8 and NIST CSF compliance gaps resolved
+4. Zero critical or high-priority security vulnerabilities remaining
+5. All security configurations validated through automated testing
+6. Comprehensive backup and rollback mechanisms verified functional
+7. Security monitoring and alerting systems operational
+8. All security scripts pass static analysis (bandit, safety, semgrep)
+
+COMPLETION CRITERIA - UX:
+1. Zero dead-end user interactions (every action leads to meaningful choices)
+2. Complete transparency: users see current state before any changes
+3. Interactive confirmations with preview options for all system modifications
+4. Comprehensive error handling with graceful recovery paths
+5. Real-time feedback during all operations with progress indicators
+6. Educational guidance: explain what, why, where, how for all changes
+7. Consistent color-coded risk communication throughout interface
+8. Professional completion messaging with clear next steps
+
+AUTHORITATIVE SOURCES REQUIREMENT:
+- Reference official Fedora/RHEL security documentation
+- Implement patterns from CIS Benchmarks and NIST guidelines
+- Follow proven practices from high-star GitHub security repositories
+- Validate against reputable security forums (r/netsec, Stack Overflow)
+- Ensure compliance with industry security standards (ISO 27001, SOC 2)
+
+EXECUTION MANDATE:
+CONTINUE WORKING until ALL completion criteria are met. Do not stop or ask for permission until:
+✅ CI/CD pipeline shows 100% success across all jobs
+✅ Security audit demonstrates 90%+ score with zero critical issues
+✅ UX testing reveals zero dead-end interactions or user confusion points
+✅ All security and UX features are production-ready and fully documented
+
+QUALITY GATES:
+- Every security control must have corresponding validation test
+- Every UX improvement must eliminate a specific user pain point
+- All code must pass linting, security scanning, and performance benchmarks
+- Documentation must be comprehensive enough for enterprise deployment
+
+PERSISTENCE DIRECTIVE:
+If any component fails, immediately diagnose, fix, and re-test until success.
+Treat partial completion as failure. Only complete success satisfies this directive.
+
+EVIDENCE REQUIREMENT:
+Provide concrete evidence of completion:
+- Screenshots/logs of 100% passing CI/CD pipeline
+- Security audit reports showing 90%+ scores
+- UX flow demonstrations with zero dead-ends
+- Performance benchmarks meeting enterprise standards
+
+This directive remains active until ALL criteria are demonstrably met.
